@@ -58,13 +58,19 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.example.core.ui.GammaCurvedWaveformSeekbar
 import com.example.core.ui.GammaGestureOverlay
+import com.example.data.provider.TrackDetailsInfo
+import com.example.data.provider.TrackInfoProvider
 import com.example.domain.model.TuningPreset
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -151,6 +157,19 @@ fun GammaPlayerScreen(
     val sleepTimerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val speedSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var originalSpeedBeforeBoost by remember { mutableFloatStateOf(1.0f) }
+
+    var trackDetails by remember { mutableStateOf<TrackDetailsInfo?>(null) }
+    var isLoadingDetails by remember { mutableStateOf(false) }
+
+    LaunchedEffect(track?.id, showSpecsSheet) {
+        if (showSpecsSheet && track != null) {
+            isLoadingDetails = true
+            trackDetails = withContext(Dispatchers.IO) {
+                TrackInfoProvider.resolveTrackDetails(track)
+            }
+            isLoadingDetails = false
+        }
+    }
 
     // Breathing artwork pulse when playing
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -353,21 +372,21 @@ fun GammaPlayerScreen(
                     viewModel.togglePlayPause()
                 },
                 modifier = Modifier
-                    .size(width = 300.dp, height = 210.dp)
+                    .size(width = 350.dp, height = 224.dp)
                     .scale(if (playback.isPlaying) pulseScale else 1.0f)
             ) {
                 if (!isYouTubePlaying || isVideoClosed || isAudioOnly) {
                     // Background aura ring
                     Box(
                         modifier = Modifier
-                            .size(width = 280.dp, height = 190.dp)
+                            .size(width = 336.dp, height = 210.dp)
                             .background(GammaGlowCyan.copy(alpha = 0.25f), RoundedCornerShape(20.dp))
                     )
 
                     GammaArtwork(
                         url = track?.artworkUrl ?: "",
                         contentDescription = "${track?.title} cover",
-                        modifier = Modifier.size(210.dp),
+                        modifier = Modifier.size(214.dp),
                         shape = RoundedCornerShape(20.dp),
                         hasGlowBorder = true
                     )
@@ -403,12 +422,12 @@ fun GammaPlayerScreen(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(bottom = 8.dp)
+                                .padding(bottom = 10.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color.Black.copy(alpha = 0.82f))
+                                .background(Color.Black.copy(alpha = 0.85f))
                                 .border(1.dp, GammaPrimary, RoundedCornerShape(16.dp))
                                 .clickable { onReopenVideo() }
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
                                 .testTag("reopen_video_badge")
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -416,14 +435,14 @@ fun GammaPlayerScreen(
                                     imageVector = Icons.Default.PlayArrow,
                                     contentDescription = "Watch Video",
                                     tint = GammaPrimary,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "Watch Video",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                     color = GammaPrimary,
-                                    fontSize = 10.sp
+                                    fontSize = 11.sp
                                 )
                             }
                         }
@@ -1072,7 +1091,7 @@ fun GammaPlayerScreen(
         }
     }
 
-    // Specs Bottom Sheet
+    // Specs Bottom Sheet (Track Information, Songwriters, Artist Bio & Technical Audio Specs)
     if (showSpecsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showSpecsSheet = false },
@@ -1082,37 +1101,268 @@ fun GammaPlayerScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                    .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Track Information",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = GammaTextPrimary
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(GammaBackground)
-                        .padding(16.dp)
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        SpecRow("Genre", track?.genre ?: "Audio")
-                        SpecRow("Audio Architecture", "5-Band DSP Equalizer")
-                        SpecRow("Playback Mechanism", "YouTube Authorized IFrame Embed")
-                        SpecRow("Terms & Rights", "Official Player • Policy Compliant")
-                        SpecRow("Media ID", track?.youtubeVideoId ?: "local_track")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(GammaPrimary.copy(alpha = 0.16f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = GammaPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Track & Artist Information",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = GammaTextPrimary
+                            )
+                            Text(
+                                text = "Credits • Songwriters • Audio Architecture",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = GammaTextSecondary
+                            )
+                        }
+                    }
+
+                    TextButton(onClick = { showSpecsSheet = false }) {
+                        Text("Done", color = GammaPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Text(
-                    text = "GAMA delivers high-fidelity audio playback with customizable 5-band real-time equalization and smart recommendations.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = GammaTextMuted,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+                // Track Artwork Banner & Quick Details
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(GammaBackground)
+                        .border(1.dp, GammaDivider.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(68.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(1.dp, GammaGlowCyan.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    ) {
+                        GammaArtwork(
+                            url = track?.artworkUrl.orEmpty(),
+                            contentDescription = track?.title,
+                            modifier = Modifier.fillMaxSize(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = track?.title ?: "Unknown Track",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = GammaTextPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = track?.artist ?: "Unknown Artist",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = GammaTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(GammaPrimary.copy(alpha = 0.15f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "${track?.frequencyHz ?: 432}Hz Solfeggio",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GammaPrimary
+                                )
+                            }
+                            if (!trackDetails?.releaseYear.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(GammaSurfaceHighlight)
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = trackDetails?.releaseYear.orEmpty(),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = GammaTextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Section 1: Songwriters & Production Credits
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "SONG CREDITS & WRITERS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = GammaSecondary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.1.sp
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(GammaBackground)
+                            .border(1.dp, GammaDivider.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                            .padding(14.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            SpecRow(
+                                "Written By",
+                                trackDetails?.songwriters ?: "${track?.artist ?: "Unknown"} (Songwriter)"
+                            )
+                            if (!trackDetails?.producers.isNullOrBlank()) {
+                                SpecRow("Producer(s)", trackDetails?.producers.orEmpty())
+                            }
+                            SpecRow(
+                                "Album / Collection",
+                                trackDetails?.album ?: track?.albumTitle?.ifBlank { "Original Single" } ?: "Single"
+                            )
+                            if (!trackDetails?.releaseYear.isNullOrBlank()) {
+                                SpecRow("Release Date", trackDetails?.releaseYear.orEmpty())
+                            }
+                            SpecRow(
+                                "Genre Classification",
+                                trackDetails?.genre ?: track?.genre ?: "Contemporary Music"
+                            )
+                        }
+                    }
+                }
+
+                // Section 2: Song Story & Description
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "ABOUT THIS SONG",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = GammaPrimary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.1.sp
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(GammaBackground)
+                            .border(1.dp, GammaDivider.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                            .padding(14.dp)
+                    ) {
+                        if (isLoadingDetails) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = GammaPrimary, strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text("Gathering songwriting and encyclopedic overview...", style = MaterialTheme.typography.bodySmall, color = GammaTextMuted)
+                            }
+                        } else {
+                            val descText = trackDetails?.description
+                                ?: "“${track?.title}” by ${track?.artist} is streamed in harmonic fidelity on GAMA. Explore live synchronized lyrics, real-time 5-band DSP equalization, and solfeggio frequency resonance."
+                            Text(
+                                text = descText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = GammaTextPrimary,
+                                lineHeight = 22.sp
+                            )
+                        }
+                    }
+                }
+
+                // Section 3: Artist Biography (if available)
+                if (!trackDetails?.artistBio.isNullOrBlank()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "ARTIST PROFILE • ${track?.artist?.uppercase()}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = GammaGlowCyan,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.1.sp
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(GammaBackground)
+                                .border(1.dp, GammaDivider.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                            .padding(14.dp)
+                        ) {
+                            Text(
+                                text = trackDetails?.artistBio.orEmpty(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = GammaTextPrimary,
+                                lineHeight = 22.sp
+                            )
+                        }
+                    }
+                }
+
+                // Section 4: Technical Acoustic & Audio Architecture Specs
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "AUDIO ARCHITECTURE & DSP SPECS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = GammaTextSecondary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.1.sp
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(GammaBackground)
+                            .border(1.dp, GammaDivider.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                            .padding(14.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            SpecRow("Harmonic Tuning", "${track?.frequencyHz ?: 432}Hz Natural Solfeggio")
+                            SpecRow("DSP Equalizer Engine", "5-Band IIR Biquad Filters")
+                            SpecRow("Audio Quality Profile", "256 kbps High-Definition AAC/Opus")
+                            SpecRow("Playback Mechanism", "YouTube Authorized IFrame Embed")
+                            if (!trackDetails?.viewCount.isNullOrBlank()) {
+                                SpecRow("Global Video Streams", trackDetails?.viewCount.orEmpty())
+                            }
+                            SpecRow("Media ID", track?.youtubeVideoId?.ifBlank { track.id } ?: "local_track")
+                        }
+                    }
+                }
             }
         }
     }

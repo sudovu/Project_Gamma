@@ -49,11 +49,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -328,16 +333,62 @@ fun GammaSyncedLyricsSheet(
                                         targetValue = when {
                                             isActive -> Color.White
                                             isUpcoming -> Color(0x99FFFFFF)
-                                            else -> Color(0x66FFFFFF)
+                                            else -> Color(0x55FFFFFF)
                                         },
                                         label = "lyricTextColor"
                                     )
 
                                     val scale by animateFloatAsState(
-                                        targetValue = if (isActive) 1.05f else 1.0f,
+                                        targetValue = if (isActive) 1.04f else 1.0f,
                                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                                         label = "lyricScale"
                                     )
+
+                                    // Word-by-word progressive karaoke highlighting
+                                    val nextLine = lyrics.lines.getOrNull(index + 1)
+                                    val lineDurationMs = ((nextLine?.timeMs ?: (line.timeMs + 4000L)) - line.timeMs).coerceAtLeast(800L)
+                                    val elapsedInLine = (effectivePositionMs - line.timeMs).coerceAtLeast(0L)
+                                    val lineProgress = (elapsedInLine.toFloat() / lineDurationMs.toFloat()).coerceIn(0f, 1f)
+                                    val words = remember(line.text) { line.text.trim().split(Regex("\\s+")).filter { it.isNotBlank() } }
+                                    val activeWordIdx = (lineProgress * words.size).toInt().coerceIn(0, (words.size - 1).coerceAtLeast(0))
+
+                                    val lyricDisplay = remember(line.text, activeWordIdx, isActive) {
+                                        if (!isActive || words.isEmpty()) {
+                                            AnnotatedString(line.text)
+                                        } else {
+                                            buildAnnotatedString {
+                                                words.forEachIndexed { wIdx, word ->
+                                                    if (wIdx > 0) append(" ")
+                                                    when {
+                                                        wIdx < activeWordIdx -> {
+                                                            // Sung word: bright bold white
+                                                            withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.Bold)) {
+                                                                append(word)
+                                                            }
+                                                        }
+                                                        wIdx == activeWordIdx -> {
+                                                            // Actively sung word: vivid cyan glow
+                                                            withStyle(
+                                                                SpanStyle(
+                                                                    color = GammaGlowCyan,
+                                                                    fontWeight = FontWeight.ExtraBold,
+                                                                    shadow = Shadow(color = GammaGlowCyan.copy(alpha = 0.8f), blurRadius = 8f)
+                                                                )
+                                                            ) {
+                                                                append(word)
+                                                            }
+                                                        }
+                                                        else -> {
+                                                            // Upcoming word: soft translucent white
+                                                            withStyle(SpanStyle(color = Color(0x88FFFFFF), fontWeight = FontWeight.Medium)) {
+                                                                append(word)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
 
                                     Box(
                                         modifier = Modifier
@@ -350,17 +401,17 @@ fun GammaSyncedLyricsSheet(
                                     ) {
                                         Column {
                                             Text(
-                                                text = line.text,
+                                                text = lyricDisplay,
                                                 fontSize = if (isActive) 23.sp else 18.sp,
                                                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                                                 color = textColor,
-                                                lineHeight = if (isActive) 30.sp else 24.sp
+                                                lineHeight = if (isActive) 32.sp else 26.sp
                                             )
                                             if (isActive) {
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(width = 32.dp, height = 3.dp)
+                                                        .size(width = 36.dp, height = 3.5.dp)
                                                         .clip(CircleShape)
                                                         .background(GammaGlowCyan)
                                                 )
@@ -409,18 +460,32 @@ fun GammaSyncedLyricsSheet(
                                 if (lyricsOffsetMs != 0L) GammaGlowCyan else Color(0x33FFFFFF),
                                 RoundedCornerShape(24.dp)
                             )
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text(
+                            text = "-2s",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.75f),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onAdjustOffset?.invoke(-2000L) }
+                                .padding(horizontal = 7.dp, vertical = 5.dp)
+                                .testTag("lyrics_offset_minus_2s")
+                        )
+
                         Text(
                             text = "-0.5s",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.85f),
                             fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .clickable { onAdjustOffset?.invoke(-500L) }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .padding(horizontal = 7.dp, vertical = 5.dp)
                                 .testTag("lyrics_offset_minus")
                         )
 
@@ -431,10 +496,11 @@ fun GammaSyncedLyricsSheet(
                             style = MaterialTheme.typography.labelSmall,
                             color = if (lyricsOffsetMs != 0L) GammaGlowCyan else Color.White,
                             fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .clickable { onAdjustOffset?.invoke(-lyricsOffsetMs) }
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .padding(horizontal = 8.dp, vertical = 5.dp)
                                 .testTag("lyrics_offset_reset")
                         )
 
@@ -443,11 +509,25 @@ fun GammaSyncedLyricsSheet(
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.85f),
                             fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .clickable { onAdjustOffset?.invoke(500L) }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .padding(horizontal = 7.dp, vertical = 5.dp)
                                 .testTag("lyrics_offset_plus")
+                        )
+
+                        Text(
+                            text = "+2s",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.75f),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onAdjustOffset?.invoke(2000L) }
+                                .padding(horizontal = 7.dp, vertical = 5.dp)
+                                .testTag("lyrics_offset_plus_2s")
                         )
                     }
                 }

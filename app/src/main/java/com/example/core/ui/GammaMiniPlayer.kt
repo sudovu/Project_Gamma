@@ -126,10 +126,10 @@ fun GammaMiniPlayer(
                         }
                     )
                 }
-                .shadow(elevation = 12.dp, shape = RoundedCornerShape(22.dp))
-                .clip(RoundedCornerShape(22.dp))
+                .shadow(elevation = 10.dp, shape = RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(18.dp))
                 .background(GammaSurfaceElevated.copy(alpha = 0.96f))
-                .border(1.dp, GammaDivider.copy(alpha = 0.8f), RoundedCornerShape(22.dp))
+                .border(1.dp, GammaDivider.copy(alpha = 0.8f), RoundedCornerShape(18.dp))
                 .clickable(onClick = onExpandClick)
                 .testTag("mini_player")
         ) {
@@ -137,43 +137,45 @@ fun GammaMiniPlayer(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Artwork with rounded capsule corners & glow border
                     Box(
                         modifier = Modifier
-                            .size(46.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .border(1.dp, GammaGlowCyan.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .border(1.dp, GammaGlowCyan.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
                     ) {
                         GammaArtwork(
                             url = track.artworkUrl,
                             contentDescription = "${track.title} artwork",
-                            modifier = Modifier.size(46.dp),
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier.size(40.dp),
+                            shape = RoundedCornerShape(10.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     // Track details
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = track.title,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             color = GammaTextPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = track.artist,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = GammaTextSecondary,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                fontSize = 12.sp
                             )
                             if (track.frequencyHz != 440) {
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -197,19 +199,19 @@ fun GammaMiniPlayer(
                     // Mini equalizer visualizer bars
                     MiniEqualizerBars(isPlaying = playbackState.isPlaying)
 
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
 
                     // Play/Pause button (smooth pill button)
                     IconButton(
                         onClick = onPlayPauseClick,
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(36.dp)
                             .background(GammaPrimary, CircleShape)
                             .testTag("mini_play_pause_button")
                     ) {
                         if (playbackState.isBuffering) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(15.dp),
                                 color = GammaBackground,
                                 strokeWidth = 2.dp
                             )
@@ -218,7 +220,7 @@ fun GammaMiniPlayer(
                                 imageVector = if (playbackState.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                                 contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
                                 tint = GammaBackground,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(19.dp)
                             )
                         }
                     }
@@ -227,14 +229,14 @@ fun GammaMiniPlayer(
                     IconButton(
                         onClick = onNextClick,
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(34.dp)
                             .testTag("mini_next_button")
                     ) {
                         Icon(
                             imageVector = Icons.Filled.SkipNext,
                             contentDescription = "Next track",
                             tint = GammaTextPrimary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
@@ -244,7 +246,7 @@ fun GammaMiniPlayer(
                     progress = { playbackState.progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(2.5.dp),
+                        .height(2.dp),
                     color = GammaPrimary,
                     trackColor = GammaDivider.copy(alpha = 0.4f)
                 )

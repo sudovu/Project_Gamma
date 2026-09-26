@@ -353,7 +353,7 @@ fun createCompliantYouTubeWebView(context: Context, playbackManager: PlaybackMan
                                         window.GammaBridge.onTimeUpdate(cur, dur);
                                     } catch (e) {}
                                 }
-                            }, 250);
+                            }, 100);
                         }
 
                         window.loadGammaVideo = function(videoId) {

@@ -156,6 +156,7 @@ class GamaAudioEngine(private val context: Context) {
 
     private var currentTrack: Track? = null
     private var currentPlaybackPositionMs = 0L
+    private var lastExternalUpdateTime = 0L
     private var masterGainMultiplier = 1.0f
     private var isEqEnabled = true
     private var currentSpeed = 1.0f
@@ -240,6 +241,7 @@ class GamaAudioEngine(private val context: Context) {
 
     fun setExternalPosition(currentMs: Long, durationMs: Long) {
         currentPlaybackPositionMs = currentMs
+        lastExternalUpdateTime = android.os.SystemClock.elapsedRealtime()
         if (durationMs > 1000L) {
             externalDurationMs = durationMs
         }
@@ -258,6 +260,10 @@ class GamaAudioEngine(private val context: Context) {
             if (mediaPlayer != null && isEnginePlaying.get()) {
                 val pos = mediaPlayer?.currentPosition?.toLong() ?: currentPlaybackPositionMs
                 if (pos > 0) pos else currentPlaybackPositionMs
+            } else if (isEnginePlaying.get() && currentPlaybackPositionMs > 0 && lastExternalUpdateTime > 0) {
+                val elapsed = (android.os.SystemClock.elapsedRealtime() - lastExternalUpdateTime).coerceAtLeast(0L)
+                val maxDur = if (externalDurationMs > 0) externalDurationMs else Long.MAX_VALUE
+                (currentPlaybackPositionMs + elapsed).coerceAtMost(maxDur)
             } else {
                 currentPlaybackPositionMs
             }

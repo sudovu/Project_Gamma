@@ -9,7 +9,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,48 +58,76 @@ fun GammaMiniSyncedLyricsBar(
         if (idx >= 0) idx else 0
     }
     val currentLineText = lines.getOrNull(currentLineIndex)?.text ?: ""
+    val nextLineText = lines.getOrNull(currentLineIndex + 1)?.text
 
-    if (currentLineText.isBlank()) return
+    if (currentLineText.isBlank() && nextLineText.isNullOrBlank()) return
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0x22FFFFFF))
-            .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0x3300FFFF).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp)
             .testTag("mini_synced_lyrics_bar"),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(
                 imageVector = Icons.Default.Mic,
                 contentDescription = null,
                 tint = GammaGlowCyan,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(16.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            AnimatedContent(
-                targetState = currentLineText,
-                transitionSpec = {
-                    (fadeIn() + slideInVertically { height -> height / 2 })
-                        .togetherWith(fadeOut() + slideOutVertically { height -> -height / 2 })
-                },
-                label = "MiniLyricsScroll",
-                modifier = Modifier.weight(1f)
-            ) { lineText ->
-                Text(
-                    text = lineText,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                // Line 1: Active lyric line (bold, glowing white)
+                AnimatedContent(
+                    targetState = currentLineText,
+                    transitionSpec = {
+                        (fadeIn() + slideInVertically { height -> height / 2 })
+                            .togetherWith(fadeOut() + slideOutVertically { height -> -height / 2 })
+                    },
+                    label = "ActiveLyricScroll"
+                ) { lineText ->
+                    Text(
+                        text = lineText.ifBlank { "♪ ♪ ♪" },
+                        color = Color.White,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Line 2: Upcoming next lyric line (preview / sing-along ahead)
+                if (!nextLineText.isNullOrBlank()) {
+                    AnimatedContent(
+                        targetState = nextLineText,
+                        transitionSpec = {
+                            fadeIn().togetherWith(fadeOut())
+                        },
+                        label = "UpcomingLyricFade"
+                    ) { nextText ->
+                        Text(
+                            text = nextText,
+                            color = Color(0x99FFFFFF),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
         }
     }

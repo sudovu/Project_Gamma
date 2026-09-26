@@ -13,6 +13,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -125,11 +131,22 @@ fun GammaApp(
     var isVideoFullscreen by remember { mutableStateOf(false) }
     var isVideoClosed by remember { mutableStateOf(false) }
     var isVideoPipMinimized by remember { mutableStateOf(false) }
+    var pipOffsetX by remember { mutableFloatStateOf(0f) }
+    var pipOffsetY by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(isPlayerScreen) {
+        if (isPlayerScreen) {
+            pipOffsetX = 0f
+            pipOffsetY = 0f
+        }
+    }
 
     LaunchedEffect(playbackState.currentTrack?.id) {
         if (playbackState.currentTrack != null) {
             // Keep isVideoClosed persistent across tracks: once closed, music plays without video popping up
             isVideoPipMinimized = false
+            pipOffsetX = 0f
+            pipOffsetY = 0f
         }
     }
 
@@ -178,7 +195,7 @@ fun GammaApp(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(bottom = 6.dp)
+                            .padding(bottom = 2.dp)
                     ) {
                         // Floating capsule mini-player island (Echo-Music inspired)
                         GammaMiniPlayer(
@@ -196,14 +213,14 @@ fun GammaApp(
                             onPreviousClick = {
                                 container.playbackManager.skipPrevious()
                             },
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 2.dp)
                         )
 
                         // Floating Pill Bottom Navigation Bar (Echo Music / Nothing OS inspired)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 4.dp)
+                                .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 2.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -440,7 +457,12 @@ fun GammaApp(
                             }
                         },
                         isVideoClosed = isVideoClosed,
-                        onReopenVideo = { isVideoClosed = false }
+                        onReopenVideo = {
+                            isVideoClosed = false
+                            isVideoPipMinimized = false
+                            pipOffsetX = 0f
+                            pipOffsetY = 0f
+                        }
                     )
                 }
             }
@@ -458,7 +480,7 @@ fun GammaApp(
             val videoWidth by animateDpAsState(
                 targetValue = when {
                     !showVideoUi -> 1.dp
-                    isPlayerScreen -> 320.dp
+                    isPlayerScreen -> 350.dp
                     else -> 220.dp
                 },
                 label = "videoWidth"
@@ -466,7 +488,7 @@ fun GammaApp(
             val videoHeight by animateDpAsState(
                 targetValue = when {
                     !showVideoUi -> 1.dp
-                    isPlayerScreen -> 210.dp
+                    isPlayerScreen -> 224.dp
                     else -> 130.dp
                 },
                 label = "videoHeight"
@@ -487,8 +509,9 @@ fun GammaApp(
                     .zIndex(500f)
                 showVideoUi -> Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
                     .padding(
-                        top = if (isPlayerScreen) 86.dp else 0.dp,
+                        top = if (isPlayerScreen) 76.dp else 0.dp,
                         bottom = if (isPlayerScreen) 0.dp else 148.dp,
                         end = if (isPlayerScreen) 0.dp else 14.dp
                     )
@@ -512,6 +535,13 @@ fun GammaApp(
                         Modifier.fillMaxSize()
                     } else {
                         Modifier
+                            .offset {
+                                if (!isPlayerScreen && !isFullscreenActive) {
+                                    IntOffset(pipOffsetX.roundToInt(), pipOffsetY.roundToInt())
+                                } else {
+                                    IntOffset.Zero
+                                }
+                            }
                             .size(width = videoWidth, height = videoHeight)
                             .then(
                                 if (showVideoUi) {
@@ -519,6 +549,15 @@ fun GammaApp(
                                         .clip(RoundedCornerShape(cornerRadius))
                                         .background(Color.Black)
                                         .border(1.5.dp, GammaGlowCyan, RoundedCornerShape(cornerRadius))
+                                        .pointerInput(isPlayerScreen, isFullscreenActive) {
+                                            if (!isPlayerScreen && !isFullscreenActive) {
+                                                detectDragGestures { change, dragAmount ->
+                                                    change.consume()
+                                                    pipOffsetX += dragAmount.x
+                                                    pipOffsetY += dragAmount.y
+                                                }
+                                            }
+                                        }
                                         .clickable(enabled = !isPlayerScreen) {
                                             navController.navigate(Screen.Player.route)
                                         }

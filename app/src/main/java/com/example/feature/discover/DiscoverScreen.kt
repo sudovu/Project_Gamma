@@ -78,6 +78,7 @@ import com.example.domain.model.Playlist
 import com.example.domain.model.Track
 import com.example.ui.theme.GammaAuraBrush
 import com.example.ui.theme.GammaBackground
+import com.example.ui.theme.GammaGlowCyan
 import com.example.ui.theme.GammaPrimary
 import com.example.ui.theme.GammaSecondary
 import com.example.ui.theme.GammaSurfaceElevated
@@ -235,9 +236,9 @@ fun DiscoverScreen(
                         )
                     }
 
-                    // Mood selector filters
+                    // Mood & Genre separate selector sections
                     item {
-                        MoodSelectorRow(
+                        MoodAndGenreSection(
                             selectedMood = state.selectedMood,
                             onMoodSelect = { viewModel.selectMood(it) }
                         )
@@ -765,7 +766,7 @@ private fun DiscoverHeader(
 }
 
 @Composable
-private fun MoodSelectorRow(
+private fun MoodAndGenreSection(
     selectedMood: String,
     onMoodSelect: (String) -> Unit
 ) {
@@ -778,6 +779,10 @@ private fun MoodSelectorRow(
         "🔥 Workout",
         "🎉 Party",
         "💖 Romance",
+        "☕ Morning Chill"
+    )
+
+    val genres = listOf(
         "Hip-Hop",
         "Rock & Metal",
         "Pop Hits",
@@ -792,16 +797,70 @@ private fun MoodSelectorRow(
         "Classics",
         "Orchestral & Cinematic"
     )
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(moods) { mood ->
-            GammaFilterChip(
-                text = mood,
-                selected = mood == selectedMood,
-                onClick = { onMoodSelect(mood) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Row 1: Moods & Vibes
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "MOODS & VIBES",
+                style = MaterialTheme.typography.labelSmall,
+                color = GammaSecondary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.1.sp,
+                fontSize = 10.5.sp
             )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.testTag("moods_lazy_row")
+        ) {
+            items(moods) { mood ->
+                GammaFilterChip(
+                    text = mood,
+                    selected = mood == selectedMood,
+                    onClick = { onMoodSelect(mood) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Row 2: Music Genres
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "MUSIC GENRES",
+                style = MaterialTheme.typography.labelSmall,
+                color = GammaGlowCyan,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.1.sp,
+                fontSize = 10.5.sp
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.testTag("genres_lazy_row")
+        ) {
+            items(genres) { genre ->
+                GammaFilterChip(
+                    text = genre,
+                    selected = genre == selectedMood,
+                    onClick = { onMoodSelect(genre) }
+                )
+            }
         }
     }
 }
