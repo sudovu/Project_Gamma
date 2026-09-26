@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.ContextCompat
+import com.example.data.provider.LrcLibLyricsProvider
 import com.example.ui.GammaApp
 import com.example.ui.theme.GammaTheme
 import com.example.ui.theme.GammaThemeManager
@@ -16,6 +17,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         GammaThemeManager.init(this)
+        LrcLibLyricsProvider.initCache(cacheDir)
         enableEdgeToEdge()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

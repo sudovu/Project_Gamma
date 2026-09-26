@@ -415,7 +415,7 @@ fun ProfileSettingsScreen(
                                     color = GammaTextPrimary
                                 )
                                  Text(
-                                    text = "Version 2.2.1 (Build 23)",
+                                    text = "Version 2.3.0 (Build 24)",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = GammaPrimary
                                 )

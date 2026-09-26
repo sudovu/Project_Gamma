@@ -129,7 +129,8 @@ class DiscoverViewModel(
                         }
                     } else {
                         // Force refresh genre stream from YouTube
-                        val genreYt = repository.getTracksForGenreFromYouTube(currentMood)
+                        val cleanQuery = currentMood.replace(Regex("""^[^\w\s&]+"""), "").trim()
+                        val genreYt = repository.getTracksForGenreFromYouTube(cleanQuery.ifEmpty { currentMood })
                         if (genreYt.isNotEmpty()) {
                             val current = _rawState.value
                             if (current is DiscoverUiState.Success) {
@@ -157,7 +158,8 @@ class DiscoverViewModel(
             _loadedGenres.add(mood)
             viewModelScope.launch {
                 try {
-                    val genreYt = repository.getTracksForGenreFromYouTube(mood)
+                    val cleanQuery = mood.replace(Regex("""^[^\w\s&]+"""), "").trim()
+                    val genreYt = repository.getTracksForGenreFromYouTube(cleanQuery.ifEmpty { mood })
                     if (genreYt.isNotEmpty()) {
                         val current = _rawState.value
                         if (current is DiscoverUiState.Success) {

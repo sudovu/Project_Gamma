@@ -4,12 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.core.media.PlaybackManager
+import com.example.data.provider.LrcLibLyricsProvider
+import com.example.data.provider.TrackLyrics
 import com.example.data.repository.MusicRepository
 import com.example.domain.model.PlaybackState
 import com.example.domain.model.Track
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -19,13 +26,27 @@ enum class PlayerSheetType {
     SPECS,
     EQUALIZER,
     SLEEP_TIMER,
-    SPEED
+    SPEED,
+    LYRICS
+}
+
+enum class PlayerStyle {
+    CYBER_NEON,
+    FLUID_GLASS
+}
+
+sealed interface LyricsUiState {
+    data object Loading : LyricsUiState
+    data class Success(val lyrics: TrackLyrics) : LyricsUiState
+    data object Empty : LyricsUiState
+    data class Error(val message: String) : LyricsUiState
 }
 
 data class PlayerUiState(
     val playbackState: PlaybackState = PlaybackState(),
     val isFavorite: Boolean = false,
-    val sheetType: PlayerSheetType = PlayerSheetType.NONE
+    val sheetType: PlayerSheetType = PlayerSheetType.NONE,
+    val playerStyle: PlayerStyle = PlayerStyle.FLUID_GLASS
 )
 
 class PlayerViewModel(
@@ -33,21 +54,101 @@ class PlayerViewModel(
     private val repository: MusicRepository
 ) : ViewModel() {
 
+    private val _playerStyle = MutableStateFlow(PlayerStyle.FLUID_GLASS)
+    val playerStyle: StateFlow<PlayerStyle> = _playerStyle.asStateFlow()
+
+    private val _lyricsState = MutableStateFlow<LyricsUiState>(LyricsUiState.Empty)
+    val lyricsState: StateFlow<LyricsUiState> = _lyricsState.asStateFlow()
+
+    private val _lyricsOffsetMs = MutableStateFlow(0L)
+    val lyricsOffsetMs: StateFlow<Long> = _lyricsOffsetMs.asStateFlow()
+
+    private var lyricsFetchJob: Job? = null
+    private var lastFetchedTrackId: String? = null
+
+    init {
+        viewModelScope.launch {
+            playbackManager.playbackState
+                .map { it.currentTrack }
+                .distinctUntilChanged { old, new -> old?.id == new?.id }
+                .collect { track ->
+                    _lyricsOffsetMs.value = 0L
+                    if (track != null) {
+                        fetchLyricsForTrack(track)
+                    } else {
+                        _lyricsState.value = LyricsUiState.Empty
+                        lastFetchedTrackId = null
+                    }
+                }
+        }
+    }
+
     val uiState: StateFlow<PlayerUiState> = combine(
         playbackManager.playbackState,
-        repository.getFavorites()
-    ) { state, favorites ->
+        repository.getFavorites(),
+        _playerStyle
+    ) { state, favorites, style ->
         val track = state.currentTrack
         val isFav = if (track != null) favorites.any { it.id == track.id } else false
         PlayerUiState(
             playbackState = state,
-            isFavorite = isFav
+            isFavorite = isFav,
+            playerStyle = style
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = PlayerUiState()
     )
+
+    fun togglePlayerStyle() {
+        _playerStyle.value = if (_playerStyle.value == PlayerStyle.CYBER_NEON) {
+            PlayerStyle.FLUID_GLASS
+        } else {
+            PlayerStyle.CYBER_NEON
+        }
+    }
+
+    fun adjustLyricsOffset(deltaMs: Long) {
+        _lyricsOffsetMs.value = (_lyricsOffsetMs.value + deltaMs).coerceIn(-15000L, 15000L)
+    }
+
+    fun resetLyricsOffset() {
+        _lyricsOffsetMs.value = 0L
+    }
+
+    fun retryFetchLyrics() {
+        val current = playbackManager.playbackState.value.currentTrack ?: return
+        lastFetchedTrackId = null
+        _lyricsOffsetMs.value = 0L
+        fetchLyricsForTrack(current)
+    }
+
+    private fun fetchLyricsForTrack(track: Track) {
+        if (track.id == lastFetchedTrackId && _lyricsState.value is LyricsUiState.Success) {
+            return
+        }
+        lastFetchedTrackId = track.id
+        lyricsFetchJob?.cancel()
+        lyricsFetchJob = viewModelScope.launch {
+            _lyricsState.value = LyricsUiState.Loading
+            try {
+                val lyrics = LrcLibLyricsProvider.getLyrics(
+                    trackId = track.id,
+                    title = track.title,
+                    artist = track.artist,
+                    durationMs = track.durationSeconds * 1000L
+                )
+                if (lyrics != null && (lyrics.lines.isNotEmpty() || lyrics.plainLyrics != null)) {
+                    _lyricsState.value = LyricsUiState.Success(lyrics)
+                } else {
+                    _lyricsState.value = LyricsUiState.Empty
+                }
+            } catch (e: Exception) {
+                _lyricsState.value = LyricsUiState.Error(e.message ?: "Failed to load lyrics")
+            }
+        }
+    }
 
     fun togglePlayPause() = playbackManager.togglePlayPause()
 

@@ -45,6 +45,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
@@ -56,6 +58,10 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.example.core.ui.GammaCurvedWaveformSeekbar
 import com.example.core.ui.GammaGestureOverlay
 import com.example.domain.model.TuningPreset
@@ -126,9 +132,12 @@ fun GammaPlayerScreen(
     onReopenVideo: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lyricsState by viewModel.lyricsState.collectAsStateWithLifecycle()
+    val lyricsOffsetMs by viewModel.lyricsOffsetMs.collectAsStateWithLifecycle()
     val playback = uiState.playbackState
     val track = playback.currentTrack
 
+    var showLyricsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
     var showSpecsSheet by remember { mutableStateOf(false) }
     var showEqualizerSheet by remember { mutableStateOf(false) }
@@ -163,17 +172,43 @@ fun GammaPlayerScreen(
             .fillMaxSize()
             .background(GammaBackground)
     ) {
-        // Deep ambient glow
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(GammaGlowViolet, GammaBackground),
-                        radius = 1200f
+        // Fluid blurred artwork background (Echo-Music / Apple Music style)
+        if (uiState.playerStyle == PlayerStyle.FLUID_GLASS && track != null && track.artworkUrl.isNotBlank()) {
+            AsyncImage(
+                model = track.artworkUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(65.dp)
+                    .alpha(0.38f)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.5f),
+                                Color.Black.copy(alpha = 0.72f),
+                                Color.Black.copy(alpha = 0.92f)
+                            )
+                        )
                     )
-                )
-        )
+            )
+        } else {
+            // Deep ambient glow for Cyber Neon mode
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(GammaGlowViolet, GammaBackground),
+                            radius = 1200f
+                        )
+                    )
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -257,6 +292,34 @@ fun GammaPlayerScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Player Style Switcher: Fluid Glass (Echo Music) vs Cyber Neon
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color(0x28FFFFFF))
+                            .border(1.dp, Color(0x35FFFFFF), CircleShape)
+                            .clickable { viewModel.togglePlayerStyle() }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .testTag("player_style_toggle_button")
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = "Toggle Player Style",
+                                tint = if (uiState.playerStyle == PlayerStyle.FLUID_GLASS) GammaGlowCyan else GammaPrimary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (uiState.playerStyle == PlayerStyle.FLUID_GLASS) "Fluid" else "Cyber",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     IconButton(
                         onClick = { showSpecsSheet = true },
                         modifier = Modifier.testTag("player_info_button")
@@ -445,6 +508,17 @@ fun GammaPlayerScreen(
                 }
             }
 
+            // Mini Synced Karaoke Lyrics Preview (tap to open full lyrics sheet)
+            GammaMiniSyncedLyricsBar(
+                lyricsState = lyricsState,
+                playbackPositionMs = playback.positionMs,
+                lyricsOffsetMs = lyricsOffsetMs,
+                onClick = { showLyricsSheet = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+            )
+
             // Curved Waveform Seekbar
             GammaCurvedWaveformSeekbar(
                 positionMs = playback.positionMs,
@@ -549,7 +623,7 @@ fun GammaPlayerScreen(
                 }
             }
 
-            // Bottom Actions (Smart Queue, Equalizer, Speed, Sleep Timer)
+            // Bottom Actions (Lyrics, Smart Queue, Equalizer, Speed, Sleep Timer)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -558,6 +632,36 @@ fun GammaPlayerScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Live Synced Lyrics Button (LrcLib)
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(if (lyricsState is LyricsUiState.Success) Color(0x3300FFFF) else GammaSurface)
+                        .border(
+                            width = 1.dp,
+                            color = if (lyricsState is LyricsUiState.Success) GammaGlowCyan else GammaDivider,
+                            shape = CircleShape
+                        )
+                        .clickable { showLyricsSheet = true }
+                        .padding(horizontal = 12.dp, vertical = 7.dp)
+                        .testTag("open_lyrics_button")
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "Live Synced Lyrics",
+                            tint = if (lyricsState is LyricsUiState.Success) GammaGlowCyan else GammaTextMuted,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = if (lyricsState is LyricsUiState.Success) "Lyrics (Live)" else "Lyrics",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = GammaTextPrimary
+                        )
+                    }
+                }
+
                 // Smart Queue Button
                 Box(
                     modifier = Modifier
@@ -679,6 +783,22 @@ fun GammaPlayerScreen(
                 }
             }
         }
+    }
+
+    // Synced Karaoke Lyrics Bottom Sheet (LrcLib integration)
+    if (showLyricsSheet) {
+        val lyricsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        GammaSyncedLyricsSheet(
+            track = track,
+            lyricsState = lyricsState,
+            playbackPositionMs = playback.positionMs,
+            lyricsOffsetMs = lyricsOffsetMs,
+            onAdjustOffset = viewModel::adjustLyricsOffset,
+            sheetState = lyricsSheetState,
+            onDismiss = { showLyricsSheet = false },
+            onSeekTo = { targetMs -> viewModel.seekTo(targetMs) },
+            onRetry = { viewModel.retryFetchLyrics() }
+        )
     }
 
     // Queue Bottom Sheet

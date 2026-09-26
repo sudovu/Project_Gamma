@@ -771,6 +771,13 @@ private fun MoodSelectorRow(
 ) {
     val moods = listOf(
         "All",
+        "⚡ Energize",
+        "🧘 Relax",
+        "🌙 Sleep",
+        "🎯 Focus",
+        "🔥 Workout",
+        "🎉 Party",
+        "💖 Romance",
         "Hip-Hop",
         "Rock & Metal",
         "Pop Hits",

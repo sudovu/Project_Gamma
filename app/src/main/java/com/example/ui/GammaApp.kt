@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -176,10 +177,10 @@ fun GammaApp(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(GammaSurfaceElevated)
                             .navigationBarsPadding()
+                            .padding(bottom = 6.dp)
                     ) {
-                        // Floating docked mini-player
+                        // Floating capsule mini-player island (Echo-Music inspired)
                         GammaMiniPlayer(
                             playbackState = playbackState,
                             onExpandClick = {
@@ -191,54 +192,72 @@ fun GammaApp(
                             },
                             onNextClick = {
                                 container.playbackManager.skipNext()
-                            }
+                            },
+                            onPreviousClick = {
+                                container.playbackManager.skipPrevious()
+                            },
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)
                         )
 
-                        // Bottom Navigation Bar
-                        NavigationBar(
-                            containerColor = GammaSurfaceElevated,
-                            contentColor = GammaTextPrimary,
-                            tonalElevation = 8.dp,
-                            windowInsets = WindowInsets(0, 0, 0, 0),
+                        // Floating Pill Bottom Navigation Bar (Echo Music / Nothing OS inspired)
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(58.dp)
-                                .border(1.dp, GammaDivider.copy(alpha = 0.5f))
+                                .padding(horizontal = 14.dp, vertical = 4.dp)
                         ) {
-                            bottomNavItems.forEach { (screen, icon) ->
-                                val selected = currentRoute == screen.route
-                                NavigationBarItem(
-                                    icon = {
-                                        Icon(
-                                            imageVector = icon,
-                                            contentDescription = screen.title,
-                                            tint = if (selected) GammaPrimary else GammaTextMuted,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            text = screen.title,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (selected) GammaPrimary else GammaTextMuted,
-                                            fontSize = 10.sp
-                                        )
-                                    },
-                                    selected = selected,
-                                    onClick = {
-                                        navController.navigate(screen.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(58.dp)
+                                    .clip(RoundedCornerShape(29.dp))
+                                    .background(GammaSurfaceElevated.copy(alpha = 0.96f))
+                                    .border(1.dp, GammaDivider.copy(alpha = 0.7f), RoundedCornerShape(29.dp)),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                bottomNavItems.forEach { (screen, icon) ->
+                                    val selected = currentRoute == screen.route
+                                    val pillBg = if (selected) GammaPrimary.copy(alpha = 0.16f) else Color.Transparent
+                                    val pillBorder = if (selected) GammaPrimary.copy(alpha = 0.4f) else Color.Transparent
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(pillBg)
+                                            .border(1.dp, pillBorder, RoundedCornerShape(20.dp))
+                                            .clickable {
+                                                navController.navigate(screen.route) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
                                             }
-                                            launchSingleTop = true
-                                            restoreState = true
+                                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                                            .testTag(screen.testTag),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = icon,
+                                                contentDescription = screen.title,
+                                                tint = if (selected) GammaPrimary else GammaTextMuted,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                            if (selected) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = screen.title,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = GammaPrimary,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
                                         }
-                                    },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        indicatorColor = GammaSurfaceElevated
-                                    ),
-                                    modifier = Modifier.testTag(screen.testTag)
-                                )
+                                    }
+                                }
                             }
                         }
                     }

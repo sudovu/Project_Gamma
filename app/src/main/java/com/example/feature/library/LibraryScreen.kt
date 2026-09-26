@@ -62,9 +62,15 @@ import com.example.core.ui.GammaTrackRow
 import com.example.core.ui.GammaUploadMusicDialog
 import com.example.domain.model.Playlist
 import com.example.domain.model.Track
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.ui.theme.GammaAuraBrush
 import com.example.ui.theme.GammaDivider
+import com.example.ui.theme.GammaGlowCyan
+import com.example.ui.theme.GammaGlowViolet
 import com.example.ui.theme.GammaPrimary
+import com.example.ui.theme.GammaSurface
 import com.example.ui.theme.GammaSurfaceElevated
 import com.example.ui.theme.GammaTextMuted
 import com.example.ui.theme.GammaTextPrimary
@@ -198,6 +204,67 @@ fun LibraryScreen(
                     }
                 }
             }
+
+            // 2-Column Echo-Music Quick Action Cards Grid
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Card 1: Starred / Favorites
+                EchoLibraryCard(
+                    title = "Liked Tracks",
+                    count = uiState.favorites.size,
+                    icon = Icons.Default.Favorite,
+                    iconTint = Color(0xFFFF4081),
+                    isSelected = uiState.selectedTab == LibraryTab.FAVORITES,
+                    onClick = { viewModel.selectTab(LibraryTab.FAVORITES) },
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Card 2: Offline Downloads
+                EchoLibraryCard(
+                    title = "Downloaded",
+                    count = uiState.downloaded.size,
+                    icon = Icons.Default.DownloadDone,
+                    iconTint = GammaPrimary,
+                    isSelected = uiState.selectedTab == LibraryTab.DOWNLOADED,
+                    onClick = { viewModel.selectTab(LibraryTab.DOWNLOADED) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Card 3: Tuned Uploads & Local
+                EchoLibraryCard(
+                    title = "432Hz Audio",
+                    count = uiState.uploads.size,
+                    icon = Icons.Default.Sensors,
+                    iconTint = GammaGlowCyan,
+                    isSelected = uiState.selectedTab == LibraryTab.UPLOADS,
+                    onClick = { viewModel.selectTab(LibraryTab.UPLOADS) },
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Card 4: Playlists
+                EchoLibraryCard(
+                    title = "Playlists",
+                    count = uiState.playlists.size,
+                    icon = Icons.AutoMirrored.Filled.QueueMusic,
+                    iconTint = GammaGlowViolet,
+                    isSelected = uiState.selectedTab == LibraryTab.PLAYLISTS,
+                    onClick = { viewModel.selectTab(LibraryTab.PLAYLISTS) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Tab selector chips
             LazyRow(
@@ -707,3 +774,64 @@ private fun UserPlaylistRow(
         }
     }
 }
+
+@Composable
+private fun EchoLibraryCard(
+    title: String,
+    count: Int,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bg = if (isSelected) GammaSurfaceElevated else GammaSurface
+    val border = if (isSelected) iconTint.copy(alpha = 0.7f) else GammaDivider.copy(alpha = 0.5f)
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp)
+            .testTag("library_card_${title.lowercase().replace(" ", "_")}")
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(iconTint.copy(alpha = 0.16f))
+                    .border(0.5.dp, iconTint.copy(alpha = 0.4f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = GammaTextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "$count tracks",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = GammaTextMuted
+                )
+            }
+        }
+    }
+}
+
