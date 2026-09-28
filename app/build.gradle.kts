@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.gamma.freq"
     minSdk = 24
     targetSdk = 35
-    versionCode = 24
-    versionName = "2.3"
+    versionCode = 25
+    versionName = "2.3.1"
     multiDexEnabled = true
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -26,20 +26,44 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      val releaseKeystore = file("${rootDir}/keystore/gama-release.jks")
+      if (releaseKeystore.exists()) {
+        storeFile = releaseKeystore
+        storePassword = System.getenv("STORE_PASSWORD") ?: "gamaaudiosecure"
+        keyAlias = System.getenv("KEY_ALIAS") ?: "gamarelease"
+        keyPassword = System.getenv("KEY_PASSWORD") ?: "gamaaudiosecure"
+      } else {
+        val fallbackPath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+        storeFile = file(fallbackPath)
+        storePassword = System.getenv("STORE_PASSWORD")
+        keyAlias = "upload"
+        keyPassword = System.getenv("KEY_PASSWORD")
+      }
+      enableV1Signing = true
+      enableV2Signing = true
+      enableV3Signing = true
+      enableV4Signing = true
     }
     create("debugConfig") {
-      val localDebugKeystore = file("${rootDir}/debug.keystore")
-      if (localDebugKeystore.exists()) {
-        storeFile = localDebugKeystore
-        storePassword = "android"
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
+      val releaseKeystore = file("${rootDir}/keystore/gama-release.jks")
+      if (releaseKeystore.exists()) {
+        storeFile = releaseKeystore
+        storePassword = "gamaaudiosecure"
+        keyAlias = "gamarelease"
+        keyPassword = "gamaaudiosecure"
+      } else {
+        val localDebugKeystore = file("${rootDir}/debug.keystore")
+        if (localDebugKeystore.exists()) {
+          storeFile = localDebugKeystore
+          storePassword = "android"
+          keyAlias = "androiddebugkey"
+          keyPassword = "android"
+        }
       }
+      enableV1Signing = true
+      enableV2Signing = true
+      enableV3Signing = true
+      enableV4Signing = true
     }
   }
 
