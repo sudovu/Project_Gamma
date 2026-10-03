@@ -609,7 +609,7 @@ fun GammaApp(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = "${playbackState.currentTrack?.artist ?: "Unknown"} • 432Hz FULLSCREEN",
+                                        text = "${playbackState.currentTrack?.artist ?: "Unknown"} • FULLSCREEN",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = GammaPrimary,
                                         fontSize = 11.sp

@@ -103,8 +103,8 @@ enum class GammaThemePreset(
     ),
 
     EMERALD_ZEN(
-        title = "Emerald 528 Hz",
-        subtitle = "Natural DNA frequency, healing jade & vibrant mint",
+        title = "Emerald Zen",
+        subtitle = "Natural organic tuning, healing jade & vibrant mint",
         primaryColor = Color(0xFF10B981),
         primaryVariant = Color(0xFF059669),
         secondaryColor = Color(0xFF06B6D4),

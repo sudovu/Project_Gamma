@@ -120,14 +120,14 @@ fun GammaImportPlaylistDialog(
                 tracks = tracks.takeLast(6)
             ),
             RelatablePlaylist(
-                title = "YouTube 432Hz Miraculous Frequencies",
+                title = "YouTube Miraculous Ambient Frequencies",
                 platform = ImportPlatform.YOUTUBE,
                 description = "Sacred universal harmonic vibrations & deep meditation",
                 coverUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300",
                 tracks = tracks.filter { it.frequencyHz == 432 }.ifEmpty { tracks.take(4) }
             ),
             RelatablePlaylist(
-                title = "YouTube 528Hz Transformation & DNA",
+                title = "YouTube Transformation & Harmony",
                 platform = ImportPlatform.YOUTUBE,
                 description = "Healing frequency soundscapes recorded for rejuvenation",
                 coverUrl = "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=300",
@@ -335,7 +335,7 @@ fun GammaImportPlaylistDialog(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search relatable playlists (e.g. Gym, Chill, Rock, 432Hz...)") },
+                        placeholder = { Text("Search relatable playlists (e.g. Gym, Chill, Rock...)") },
                         leadingIcon = {
                             Icon(Icons.Default.Search, contentDescription = null, tint = GammaPrimary)
                         },

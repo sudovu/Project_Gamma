@@ -425,7 +425,7 @@ private fun EmptySearchArtistFallback(
 ) {
     val vibeKeywords = listOf(
         "Workout", "Gym Pump", "Lo-Fi Chill", "Phonk Drift",
-        "432Hz Calm", "Top Hits", "90s Rock", "Sad Vibes",
+        "Deep Calm", "Top Hits", "90s Rock", "Sad Vibes",
         "Cyberpunk", "Acoustic Folk"
     )
 

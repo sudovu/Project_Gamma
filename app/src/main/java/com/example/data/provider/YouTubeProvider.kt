@@ -792,7 +792,36 @@ class YouTubeProvider(
                 }
 
                 val lengthObj = vr.optJSONObject("lengthText")
-                val durationSec = parseDurationToSeconds(lengthObj?.optString("simpleText") ?: "")
+                var lengthStr = lengthObj?.optString("simpleText") ?: ""
+                var isLiveStream = false
+                val overlays = vr.optJSONArray("thumbnailOverlays")
+                if (overlays != null) {
+                    for (i in 0 until overlays.length()) {
+                        val to = overlays.optJSONObject(i)?.optJSONObject("thumbnailOverlayTimeStatusRenderer")
+                        if (to != null) {
+                            val style = to.optString("style")
+                            if (style.equals("LIVE", ignoreCase = true)) {
+                                isLiveStream = true
+                                break
+                            }
+                            if (lengthStr.isEmpty()) {
+                                lengthStr = to.optJSONObject("text")?.optString("simpleText") ?: ""
+                                if (lengthStr.isEmpty()) {
+                                    val runs = to.optJSONObject("text")?.optJSONArray("runs")
+                                    if (runs != null && runs.length() > 0) {
+                                        lengthStr = runs.optJSONObject(0)?.optString("text") ?: ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (isLiveStream || lengthStr.contains("LIVE", ignoreCase = true)) {
+                    // Do not parse live streams or non-stop radios as songs
+                    return
+                }
+
+                val durationSec = parseDurationToSeconds(lengthStr)
 
                 val thumbs = vr.optJSONObject("thumbnail")?.optJSONArray("thumbnails")
                 val thumbUrl = if (thumbs != null && thumbs.length() > 0) {

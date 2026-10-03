@@ -8,6 +8,10 @@ import com.example.data.provider.MusicProvider
 import com.example.data.provider.YouTubeProvider
 import com.example.data.repository.MusicRepository
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
 class GammaContainer(context: Context) {
     val database: GammaDatabase = GammaDatabase.getInstance(context)
     val networkMonitor: NetworkMonitor = NetworkMonitor(context)
@@ -20,13 +24,19 @@ class GammaContainer(context: Context) {
         playlistDao = database.playlistDao(),
         searchHistoryDao = database.searchHistoryDao(),
         uploadedTrackDao = database.uploadedTrackDao(),
-        discoveryCacheDao = database.discoveryCacheDao()
+        discoveryCacheDao = database.discoveryCacheDao(),
+        trackPlayStatDao = database.trackPlayStatDao()
     )
     val playbackManager: PlaybackManager = PlaybackManager(context)
 
     init {
         playbackManager.setCandidateProvider {
             musicRepository.getAllCandidateTracks()
+        }
+        playbackManager.onTrackStartedListener = { track ->
+            CoroutineScope(Dispatchers.IO).launch {
+                musicRepository.recordPlayback(track)
+            }
         }
     }
 }

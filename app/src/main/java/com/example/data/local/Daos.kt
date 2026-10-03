@@ -156,3 +156,50 @@ interface DiscoveryCacheDao {
     fun getDiscoveredCount(): Flow<Int>
 }
 
+@Dao
+interface TrackPlayStatDao {
+    @Query("SELECT * FROM track_play_stats ORDER BY playCount DESC, lastPlayedAt DESC LIMIT :limit")
+    fun getMostPlayed(limit: Int = 100): Flow<List<TrackPlayStatEntity>>
+
+    @Query("SELECT * FROM track_play_stats ORDER BY playCount ASC, lastPlayedAt DESC LIMIT :limit")
+    fun getLeastPlayed(limit: Int = 100): Flow<List<TrackPlayStatEntity>>
+
+    @Query("SELECT * FROM track_play_stats WHERE trackId = :trackId LIMIT 1")
+    suspend fun getStat(trackId: String): TrackPlayStatEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(entity: TrackPlayStatEntity)
+
+    @Query("UPDATE track_play_stats SET playCount = playCount + 1, lastPlayedAt = :now WHERE trackId = :trackId")
+    suspend fun incrementPlayCount(trackId: String, now: Long = System.currentTimeMillis()): Int
+
+    @Transaction
+    suspend fun recordPlay(
+        trackId: String,
+        title: String,
+        artist: String,
+        albumTitle: String = "",
+        artworkUrl: String = "",
+        youtubeVideoId: String = "",
+        durationSeconds: Int = 0,
+        genre: String = "Music"
+    ) {
+        val updated = incrementPlayCount(trackId)
+        if (updated == 0) {
+            insertOrUpdate(
+                TrackPlayStatEntity(
+                    trackId = trackId,
+                    title = title,
+                    artist = artist,
+                    albumTitle = albumTitle,
+                    artworkUrl = artworkUrl,
+                    youtubeVideoId = youtubeVideoId,
+                    durationSeconds = durationSeconds,
+                    genre = genre,
+                    playCount = 1,
+                    lastPlayedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+}

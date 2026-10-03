@@ -78,6 +78,7 @@ class PlaybackManager(private val context: Context) {
     }
 
     private var focusRequest: AudioFocusRequest? = null
+    var onTrackStartedListener: ((Track) -> Unit)? = null
 
     init {
         activeInstance = this
@@ -97,13 +98,15 @@ class PlaybackManager(private val context: Context) {
                     cachedCandidates = (CuratedFrequencies.allTracks + list)
                         .distinctBy { it.id }
                         .filterNot { it.id in obsolete || it.title.contains("Hyper-Velocity", ignoreCase = true) || it.artist.contains("Kinetic Pulse", ignoreCase = true) }
+                        .filterNot { SmartQueueEngine.isCollectionOrMix(it.title, it.durationSeconds) }
                 }
             } catch (_: Exception) {}
         }
     }
 
     fun getAvailableCandidates(): List<Track> {
-        return if (cachedCandidates.isNotEmpty()) cachedCandidates else CuratedFrequencies.allTracks
+        val pool = if (cachedCandidates.isNotEmpty()) cachedCandidates else CuratedFrequencies.allTracks
+        return pool.filter { !SmartQueueEngine.isCollectionOrMix(it.title, it.durationSeconds) && SmartQueueEngine.isTrackPlayable(it) }
     }
 
     fun attachBridge(bridge: YouTubePlayerBridge) {
@@ -203,6 +206,8 @@ class PlaybackManager(private val context: Context) {
             isPlaying = true,
             artUrl = playableTrack.artworkUrl
         )
+
+        onTrackStartedListener?.invoke(playableTrack)
     }
 
     fun playQueue(queue: List<Track>, startIndex: Int = 0) {

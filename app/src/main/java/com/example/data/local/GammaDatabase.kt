@@ -14,9 +14,10 @@ import androidx.room.RoomDatabase
         SearchHistoryEntity::class,
         UserPreferenceEntity::class,
         UploadedTrackEntity::class,
-        DiscoveredTrackEntity::class
+        DiscoveredTrackEntity::class,
+        TrackPlayStatEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class GammaDatabase : RoomDatabase() {
@@ -27,6 +28,7 @@ abstract class GammaDatabase : RoomDatabase() {
     abstract fun userPreferenceDao(): UserPreferenceDao
     abstract fun uploadedTrackDao(): UploadedTrackDao
     abstract fun discoveryCacheDao(): DiscoveryCacheDao
+    abstract fun trackPlayStatDao(): TrackPlayStatDao
 
     companion object {
         @Volatile

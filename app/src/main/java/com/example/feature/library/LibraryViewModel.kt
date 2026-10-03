@@ -25,14 +25,23 @@ enum class LibraryTab(val title: String) {
     HISTORY("Played")
 }
 
+enum class PlaylistFilter(val title: String) {
+    ALL("All Playlists"),
+    MOST_PLAYED("Most Played"),
+    LEAST_PLAYED("Least Played")
+}
+
 data class LibraryUiState(
     val selectedTab: LibraryTab = LibraryTab.FAVORITES,
+    val selectedPlaylistFilter: PlaylistFilter = PlaylistFilter.ALL,
     val favorites: List<Track> = emptyList(),
     val downloaded: List<Track> = emptyList(),
     val discoveryHistory: List<Track> = emptyList(),
     val uploads: List<Track> = emptyList(),
     val playlists: List<Playlist> = emptyList(),
     val history: List<Track> = emptyList(),
+    val mostPlayed: List<Track> = emptyList(),
+    val leastPlayed: List<Track> = emptyList(),
     val favoriteIds: Set<String> = emptySet(),
     val downloadedIds: Set<String> = emptySet(),
     val downloadingTrackId: String? = null
@@ -43,7 +52,9 @@ private data class LibraryData(
     val discoveryHistory: List<Track>,
     val uploads: List<Track>,
     val playlists: List<Playlist>,
-    val history: List<Track>
+    val history: List<Track>,
+    val mostPlayed: List<Track> = emptyList(),
+    val leastPlayed: List<Track> = emptyList()
 )
 
 private data class LibraryDataWithDownloads(
@@ -61,7 +72,17 @@ class LibraryViewModel(
     private val _selectedTab = MutableStateFlow(LibraryTab.FAVORITES)
     val selectedTab: StateFlow<LibraryTab> = _selectedTab.asStateFlow()
 
-    private val _baseData = combine(
+    private val _selectedPlaylistFilter = MutableStateFlow(PlaylistFilter.ALL)
+    val selectedPlaylistFilter: StateFlow<PlaylistFilter> = _selectedPlaylistFilter.asStateFlow()
+
+    private val _playStatsData = combine(
+        repository.getMostPlayedTracks(),
+        repository.getLeastPlayedTracks()
+    ) { most, least ->
+        Pair(most, least)
+    }
+
+    private val _coreData = combine(
         repository.getFavorites(),
         repository.getDiscoveryHistory(),
         repository.getUploadedTracks(),
@@ -71,11 +92,15 @@ class LibraryViewModel(
         LibraryData(favs, disc, uploads, pls, hist)
     }
 
+    private val _baseData = combine(_coreData, _playStatsData) { core, (most, least) ->
+        core.copy(mostPlayed = most, leastPlayed = least)
+    }
+
     private val _dataState = combine(
         _baseData,
         playbackManager.musicDownloader.downloadStatuses
     ) { base, statuses ->
-        val allKnown = (CuratedFrequencies.allTracks + base.discoveryHistory + base.uploads + base.favorites + base.history).distinctBy { it.id }
+        val allKnown = (CuratedFrequencies.allTracks + base.discoveryHistory + base.uploads + base.favorites + base.history + base.mostPlayed + base.leastPlayed).distinctBy { it.id }
         val downloaded = allKnown.filter { track ->
             track.localAudioUri.isNotBlank() ||
             statuses[track.id] is com.example.core.download.DownloadStatus.Completed ||
@@ -88,16 +113,20 @@ class LibraryViewModel(
 
     val uiState: StateFlow<LibraryUiState> = combine(
         _selectedTab,
+        _selectedPlaylistFilter,
         _dataState
-    ) { tab, data ->
+    ) { tab, filter, data ->
         LibraryUiState(
             selectedTab = tab,
+            selectedPlaylistFilter = filter,
             favorites = data.base.favorites,
             downloaded = data.downloaded,
             discoveryHistory = data.base.discoveryHistory,
             uploads = data.base.uploads,
             playlists = data.base.playlists,
             history = data.base.history,
+            mostPlayed = data.base.mostPlayed,
+            leastPlayed = data.base.leastPlayed,
             favoriteIds = data.base.favorites.map { it.id }.toSet(),
             downloadedIds = data.downloadedIds,
             downloadingTrackId = data.downloadingTrackId
@@ -110,6 +139,10 @@ class LibraryViewModel(
 
     fun selectTab(tab: LibraryTab) {
         _selectedTab.value = tab
+    }
+
+    fun selectPlaylistFilter(filter: PlaylistFilter) {
+        _selectedPlaylistFilter.value = filter
     }
 
     fun playTrack(track: Track, queue: List<Track>) {

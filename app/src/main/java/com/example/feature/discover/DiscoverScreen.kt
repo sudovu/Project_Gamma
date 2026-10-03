@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -54,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -326,37 +328,75 @@ fun DiscoverScreen(
                                 Text(
                                     text = if (state.selectedMood == "All") "All-Genre Combined Stream" else "${state.selectedMood} Mix",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = GammaTextSecondary
+                                    color = GammaTextSecondary,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
 
-                                Surface(
-                                    onClick = {
-                                        if (activePool.isNotEmpty()) {
-                                            viewModel.playShuffled(activePool)
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = GammaPrimary.copy(alpha = 0.12f),
-                                    border = BorderStroke(1.dp, GammaPrimary.copy(alpha = 0.35f)),
-                                    modifier = Modifier.testTag("shuffle_all_recommended_btn")
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    Surface(
+                                        onClick = {
+                                            if (activePool.isNotEmpty()) {
+                                                viewModel.playAll(activePool, shuffle = false)
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(20.dp),
+                                        color = GammaPrimary,
+                                        modifier = Modifier.testTag("play_all_recommended_btn")
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Shuffle,
-                                            contentDescription = "Shuffle All",
-                                            tint = GammaPrimary,
-                                            modifier = Modifier.size(15.dp)
-                                        )
-                                        Text(
-                                            text = if (state.selectedMood == "All") "Shuffle All Genres (${activePool.size})" else "Shuffle ${state.selectedMood} (${activePool.size})",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = GammaPrimary
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.PlayArrow,
+                                                contentDescription = "Play All",
+                                                tint = GammaBackground,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Text(
+                                                text = "Play",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = GammaBackground
+                                            )
+                                        }
+                                    }
+
+                                    Surface(
+                                        onClick = {
+                                            if (activePool.isNotEmpty()) {
+                                                viewModel.playShuffled(activePool)
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(20.dp),
+                                        color = GammaPrimary.copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, GammaPrimary.copy(alpha = 0.35f)),
+                                        modifier = Modifier.testTag("shuffle_all_recommended_btn")
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Shuffle,
+                                                contentDescription = "Shuffle All",
+                                                tint = GammaPrimary,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Text(
+                                                text = if (state.selectedMood == "All") "Shuffle (${activePool.size})" else "Shuffle ${state.selectedMood} (${activePool.size})",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = GammaPrimary
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -400,6 +440,12 @@ fun DiscoverScreen(
                                     onActionClick = {
                                         if (feed.quickPicks.isNotEmpty()) {
                                             viewModel.playShuffled(feed.quickPicks)
+                                        }
+                                    },
+                                    secondaryActionText = "Play",
+                                    onSecondaryActionClick = {
+                                        if (feed.quickPicks.isNotEmpty()) {
+                                            viewModel.playAll(feed.quickPicks, shuffle = false)
                                         }
                                     }
                                 )
@@ -476,6 +522,12 @@ fun DiscoverScreen(
                                 onActionClick = {
                                     if (displayedTracks.isNotEmpty()) {
                                         viewModel.playShuffled(displayedTracks)
+                                    }
+                                },
+                                secondaryActionText = "Play",
+                                onSecondaryActionClick = {
+                                    if (displayedTracks.isNotEmpty()) {
+                                        viewModel.playAll(displayedTracks, shuffle = false)
                                     }
                                 }
                             )
@@ -571,7 +623,15 @@ fun DiscoverScreen(
                             item {
                                 GammaSectionHeader(
                                     category = "Vibe Frequency",
-                                    title = "${state.selectedMood} Anthems"
+                                    title = "${state.selectedMood} Anthems",
+                                    actionText = "Shuffle",
+                                    onActionClick = {
+                                        viewModel.playShuffled(displayedTracks.take(6))
+                                    },
+                                    secondaryActionText = "Play",
+                                    onSecondaryActionClick = {
+                                        viewModel.playAll(displayedTracks.take(6), shuffle = false)
+                                    }
                                 )
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
@@ -594,7 +654,15 @@ fun DiscoverScreen(
                         item {
                             GammaSectionHeader(
                                 category = "Unlimited Stream",
-                                title = "${state.selectedMood} Radio"
+                                title = "${state.selectedMood} Radio",
+                                actionText = "Shuffle",
+                                onActionClick = {
+                                    viewModel.playShuffled(displayedTracks)
+                                },
+                                secondaryActionText = "Play",
+                                onSecondaryActionClick = {
+                                    viewModel.playAll(displayedTracks, shuffle = false)
+                                }
                             )
                         }
 
@@ -789,7 +857,7 @@ private fun MoodAndGenreSection(
         "Cyberpunk & Synthwave",
         "Nu Metal & Alt-Rock",
         "Electronic & EDM",
-        "432Hz & Ambient",
+        "Ambient & Calm",
         "Lo-Fi & Chill",
         "Acoustic & Folk",
         "R&B & Soul",

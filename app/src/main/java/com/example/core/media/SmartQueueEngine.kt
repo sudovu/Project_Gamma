@@ -67,14 +67,14 @@ object SmartQueueEngine {
     }
 
     fun isCollectionOrMix(title: String, durationSeconds: Int = 0): Boolean {
-        // Single songs are typically 1.5 - 10 minutes (90s - 600s). Epic singles like November Rain can reach 9-11 minutes. Anything over 12 minutes (720s) is a collection/mix/album.
-        if (durationSeconds > 720 || (durationSeconds in 1..70)) return true
+        // Single songs can reach up to 10-12 minutes (e.g. November Rain is 537s). Full albums, compilations, and DJ sets typically exceed 12-15+ minutes.
+        if (durationSeconds > 720 || (durationSeconds in 1..45)) return true
 
         val t = title.lowercase().trim()
         val collectionKeywords = listOf(
             "full album", "album mix", "playlist", "collection", "compilation",
             "jukebox", "non stop", "nonstop", "discography", "mashup",
-            "1 hour", "2 hour", "3 hour", "hours", "mix 20", "video mix",
+            "1 hour", "2 hour", "3 hour", "4 hour", "hours", "mix 20", "video mix",
             "top 10", "top 20", "top 30", "top 40", "top 50", "top 100",
             "best songs of", "greatest hits mix", "vol.", "vol ", "volume ",
             "best of", "megamix", "today's top", "todays top", "top hits",
@@ -83,11 +83,15 @@ object SmartQueueEngine {
             "top chart", "new songs 20", "songs 202", "music 202", "viral song",
             "viral hits", "christmas music", "relaxing music", "study music",
             "sleep music", "lofi live", "radio live", "radio stream", "24/7",
-            "hits of the day", "audio mix", "official audio mix"
+            "hits of the day", "audio mix", "official audio mix", "soundtrack",
+            "full ost", "medley", "mixtape", "dj mix", "continuous mix",
+            "all songs", "every song", "full concert", "live concert", "live at ",
+            "tracklist", "best english songs", "best hits", "greatest hits"
         )
         if (collectionKeywords.any { t.contains(it) }) return true
-        if (t.contains("mix") && (durationSeconds > 340 || durationSeconds == 0)) return true
-        if (t.contains("greatest hits") && (durationSeconds > 340 || durationSeconds == 0)) return true
+        if (t.contains("mix") && (durationSeconds > 300 || durationSeconds == 0)) return true
+        if (t.contains("playlist")) return true
+        if (t.contains("album") && !t.contains("album version")) return true
         return false
     }
 

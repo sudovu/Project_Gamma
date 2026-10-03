@@ -216,6 +216,23 @@ class DiscoverViewModel(
         }
     }
 
+    fun playAll(queue: List<Track>, shuffle: Boolean = false) {
+        if (shuffle) {
+            playShuffled(queue)
+        } else {
+            val playableOnly = queue.filter { com.example.core.media.SmartQueueEngine.isTrackPlayable(it) }
+            val list = if (playableOnly.isNotEmpty()) playableOnly else queue
+            if (list.isNotEmpty()) {
+                playbackManager.playQueue(list, startIndex = 0)
+                playbackManager.playbackState.value.currentTrack?.let { track ->
+                    viewModelScope.launch {
+                        repository.recordRecent(track)
+                    }
+                }
+            }
+        }
+    }
+
     val userPlaylists: StateFlow<List<com.example.domain.model.Playlist>> = repository.getUserPlaylists().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

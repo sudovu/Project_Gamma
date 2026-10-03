@@ -1613,7 +1613,7 @@ fun ProfileSettingsScreen(
         val availableSpotifyTastes = listOf(
             "Rock & Metal", "Alternative Rock", "Cyberpunk", "Nu Metal",
             "Hip-Hop", "Synthwave", "Pop Classics", "Indie Rock",
-            "Electronic / EDM", "Lo-Fi Beats", "432Hz Ambient", "Acoustic"
+            "Electronic / EDM", "Lo-Fi Beats", "Ambient Calm", "Acoustic"
         )
         val spotifyEmailError = if (editSpotifyUser.isNotBlank() && editSpotifyUser.contains("@")) {
             EmailValidator.getSyntaxErrorMessage(editSpotifyUser)
@@ -1734,7 +1734,7 @@ fun ProfileSettingsScreen(
 
     if (showGoogleConnectDialog) {
         val availableGoogleTastes = listOf(
-            "432Hz Ambient", "Progressive Metal", "Synthwave", "Heavy Drums",
+            "Ambient Calm", "Progressive Metal", "Synthwave", "Heavy Drums",
             "Lo-Fi Chill", "Vocal Focus", "Orchestral", "Deep House",
             "Acoustic Folk", "Hip-Hop", "Electronic / EDM", "Pop Classics"
         )
@@ -1821,7 +1821,7 @@ fun ProfileSettingsScreen(
                 Button(
                     onClick = {
                         val finalEmail = editGoogleEmail.trim().ifEmpty { "vhuwonmathers@gmail.com" }
-                        val finalTastes = selectedGoogleTastes.toList().ifEmpty { listOf("432Hz Ambient", "Progressive Metal", "Synthwave") }
+                        val finalTastes = selectedGoogleTastes.toList().ifEmpty { listOf("Ambient Calm", "Progressive Metal", "Synthwave") }
                         tasteManager.linkGoogle(finalEmail, finalTastes)
                         if (youtubeProvider != null) {
                             coroutineScope.launch {

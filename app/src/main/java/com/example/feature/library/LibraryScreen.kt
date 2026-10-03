@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sensors
@@ -66,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.ui.theme.GammaAuraBrush
+import com.example.ui.theme.GammaBackground
 import com.example.ui.theme.GammaDivider
 import com.example.ui.theme.GammaGlowCyan
 import com.example.ui.theme.GammaGlowViolet
@@ -243,7 +245,7 @@ fun LibraryScreen(
             ) {
                 // Card 3: Tuned Uploads & Local
                 EchoLibraryCard(
-                    title = "432Hz Audio",
+                    title = "Uploaded Audio",
                     count = uiState.uploads.size,
                     icon = Icons.Default.Sensors,
                     iconTint = GammaGlowCyan,
@@ -546,70 +548,236 @@ fun LibraryScreen(
                 }
 
                 LibraryTab.PLAYLISTS -> {
-                    if (uiState.playlists.isEmpty()) {
-                        Column(
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Sub-filter tabs: All Playlists, Most Played, Least Played
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            GammaEmptyState(
-                                title = "Your Soundwaves",
-                                message = "Create custom frequency compilations for focus, meditation, or travel.",
-                                icon = Icons.AutoMirrored.Filled.QueueMusic
+                            GammaFilterChip(
+                                text = "All (${uiState.playlists.size})",
+                                selected = uiState.selectedPlaylistFilter == PlaylistFilter.ALL,
+                                onClick = { viewModel.selectPlaylistFilter(PlaylistFilter.ALL) }
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                GammaPrimaryButton(
-                                    text = "Create Playlist",
-                                    icon = Icons.Default.Add,
-                                    onClick = { showCreateDialog = true }
-                                )
-                                GammaSecondaryButton(
-                                    text = "Import Playlist",
-                                    icon = Icons.Default.CloudDownload,
-                                    onClick = { showImportDialog = true }
-                                )
-                            }
+                            GammaFilterChip(
+                                text = "🔥 Most Played (${uiState.mostPlayed.size})",
+                                selected = uiState.selectedPlaylistFilter == PlaylistFilter.MOST_PLAYED,
+                                onClick = { viewModel.selectPlaylistFilter(PlaylistFilter.MOST_PLAYED) }
+                            )
+                            GammaFilterChip(
+                                text = "❄️ Least Played (${uiState.leastPlayed.size})",
+                                selected = uiState.selectedPlaylistFilter == PlaylistFilter.LEAST_PLAYED,
+                                onClick = { viewModel.selectPlaylistFilter(PlaylistFilter.LEAST_PLAYED) }
+                            )
                         }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag("user_playlists_list"),
-                            contentPadding = PaddingValues(bottom = 120.dp)
-                        ) {
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    GammaPrimaryButton(
-                                        text = "Create Playlist",
-                                        icon = Icons.Default.Add,
-                                        onClick = { showCreateDialog = true },
-                                        modifier = Modifier.weight(1f)
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        when (uiState.selectedPlaylistFilter) {
+                            PlaylistFilter.MOST_PLAYED -> {
+                                if (uiState.mostPlayed.isEmpty()) {
+                                    GammaEmptyState(
+                                        title = "No Frequency Records",
+                                        message = "As you listen to songs in GAMA, your most played tracks will automatically appear here.",
+                                        icon = Icons.Default.GraphicEq
                                     )
-                                    GammaSecondaryButton(
-                                        text = "Import Playlist",
-                                        icon = Icons.Default.CloudDownload,
-                                        onClick = { showImportDialog = true },
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .testTag("most_played_list"),
+                                        contentPadding = PaddingValues(bottom = 120.dp)
+                                    ) {
+                                        item {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                GammaPrimaryButton(
+                                                    text = "Play All (${uiState.mostPlayed.size})",
+                                                    icon = Icons.Default.PlayArrow,
+                                                    onClick = { viewModel.playAll(uiState.mostPlayed, shuffle = false) },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                GammaSecondaryButton(
+                                                    text = "Shuffle",
+                                                    icon = Icons.Default.Shuffle,
+                                                    onClick = { viewModel.playAll(uiState.mostPlayed, shuffle = true) },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                        }
+
+                                        items(uiState.mostPlayed, key = { "most_" + it.id }) { track ->
+                                            val isCurr = track.id == currentPlayingTrackId
+                                            val isFav = uiState.favoriteIds.contains(track.id)
+                                            val isDown = uiState.downloadedIds.contains(track.id) || track.isDownloaded || track.localAudioUri.isNotBlank()
+                                            Box(
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                            ) {
+                                                GammaTrackRow(
+                                                    track = track.copy(isFavorite = isFav, isDownloaded = isDown),
+                                                    isCurrentTrack = isCurr,
+                                                    isPlaying = isPlaying && isCurr,
+                                                    isDownloaded = isDown,
+                                                    isDownloading = uiState.downloadingTrackId == track.id,
+                                                    onClick = { onTrackClick(track, uiState.mostPlayed) },
+                                                    onFavoriteToggle = { viewModel.toggleFavorite(track) },
+                                                    onDownloadClick = { viewModel.downloadTrack(track) }
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
-                                Spacer(modifier = Modifier.height(6.dp))
                             }
 
-                            items(uiState.playlists, key = { it.id }) { playlist ->
-                                UserPlaylistRow(
-                                    playlist = playlist,
-                                    onClick = { onPlaylistClick(playlist.id) },
-                                    onDownloadClick = { viewModel.downloadPlaylist(playlist.id) }
-                                )
+                            PlaylistFilter.LEAST_PLAYED -> {
+                                if (uiState.leastPlayed.isEmpty()) {
+                                    GammaEmptyState(
+                                        title = "No Frequency Records",
+                                        message = "As you listen to songs in GAMA, your least played tracks and rare gems will automatically appear here.",
+                                        icon = Icons.Default.History
+                                    )
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .testTag("least_played_list"),
+                                        contentPadding = PaddingValues(bottom = 120.dp)
+                                    ) {
+                                        item {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                GammaPrimaryButton(
+                                                    text = "Play All (${uiState.leastPlayed.size})",
+                                                    icon = Icons.Default.PlayArrow,
+                                                    onClick = { viewModel.playAll(uiState.leastPlayed, shuffle = false) },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                GammaSecondaryButton(
+                                                    text = "Shuffle",
+                                                    icon = Icons.Default.Shuffle,
+                                                    onClick = { viewModel.playAll(uiState.leastPlayed, shuffle = true) },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                        }
+
+                                        items(uiState.leastPlayed, key = { "least_" + it.id }) { track ->
+                                            val isCurr = track.id == currentPlayingTrackId
+                                            val isFav = uiState.favoriteIds.contains(track.id)
+                                            val isDown = uiState.downloadedIds.contains(track.id) || track.isDownloaded || track.localAudioUri.isNotBlank()
+                                            Box(
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                            ) {
+                                                GammaTrackRow(
+                                                    track = track.copy(isFavorite = isFav, isDownloaded = isDown),
+                                                    isCurrentTrack = isCurr,
+                                                    isPlaying = isPlaying && isCurr,
+                                                    isDownloaded = isDown,
+                                                    isDownloading = uiState.downloadingTrackId == track.id,
+                                                    onClick = { onTrackClick(track, uiState.leastPlayed) },
+                                                    onFavoriteToggle = { viewModel.toggleFavorite(track) },
+                                                    onDownloadClick = { viewModel.downloadTrack(track) }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            PlaylistFilter.ALL -> {
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .testTag("user_playlists_list"),
+                                    contentPadding = PaddingValues(bottom = 120.dp)
+                                ) {
+                                    item {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            GammaPrimaryButton(
+                                                text = "Create Playlist",
+                                                icon = Icons.Default.Add,
+                                                onClick = { showCreateDialog = true },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            GammaSecondaryButton(
+                                                text = "Import Playlist",
+                                                icon = Icons.Default.CloudDownload,
+                                                onClick = { showImportDialog = true },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                    }
+
+                                    // Automatic Smart Playlists: Most Played & Least Played
+                                    item {
+                                        SmartPlaylistCard(
+                                            title = "🔥 Most Played",
+                                            description = "Automatically generated based on listening frequency",
+                                            trackCount = uiState.mostPlayed.size,
+                                            iconTint = Color(0xFFFF5722),
+                                            onClick = { viewModel.selectPlaylistFilter(PlaylistFilter.MOST_PLAYED) },
+                                            onPlayClick = if (uiState.mostPlayed.isNotEmpty()) {
+                                                { viewModel.playAll(uiState.mostPlayed, shuffle = false) }
+                                            } else null,
+                                            onShuffleClick = if (uiState.mostPlayed.isNotEmpty()) {
+                                                { viewModel.playAll(uiState.mostPlayed, shuffle = true) }
+                                            } else null
+                                        )
+                                    }
+
+                                    item {
+                                        SmartPlaylistCard(
+                                            title = "❄️ Least Played",
+                                            description = "Rarely played songs and undiscovered gems",
+                                            trackCount = uiState.leastPlayed.size,
+                                            iconTint = GammaGlowCyan,
+                                            onClick = { viewModel.selectPlaylistFilter(PlaylistFilter.LEAST_PLAYED) },
+                                            onPlayClick = if (uiState.leastPlayed.isNotEmpty()) {
+                                                { viewModel.playAll(uiState.leastPlayed, shuffle = false) }
+                                            } else null,
+                                            onShuffleClick = if (uiState.leastPlayed.isNotEmpty()) {
+                                                { viewModel.playAll(uiState.leastPlayed, shuffle = true) }
+                                            } else null
+                                        )
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                    }
+
+                                    if (uiState.playlists.isEmpty()) {
+                                        item {
+                                            GammaEmptyState(
+                                                title = "Your Soundwaves",
+                                                message = "Create custom frequency compilations for focus, meditation, or travel.",
+                                                icon = Icons.AutoMirrored.Filled.QueueMusic
+                                            )
+                                        }
+                                    } else {
+                                        items(uiState.playlists, key = { it.id }) { playlist ->
+                                            UserPlaylistRow(
+                                                playlist = playlist,
+                                                onClick = { onPlaylistClick(playlist.id) },
+                                                onDownloadClick = { viewModel.downloadPlaylist(playlist.id) }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -770,6 +938,108 @@ private fun UserPlaylistRow(
                     contentDescription = "Download entire playlist",
                     tint = GammaPrimary
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SmartPlaylistCard(
+    title: String,
+    description: String,
+    trackCount: Int,
+    iconTint: Color,
+    onClick: () -> Unit,
+    onPlayClick: (() -> Unit)? = null,
+    onShuffleClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 5.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(GammaSurfaceElevated)
+            .border(1.dp, GammaDivider.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(iconTint.copy(alpha = 0.15f))
+                .border(1.dp, iconTint.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = GammaTextPrimary
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = GammaTextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "$trackCount songs • Automatic Smart Playlist",
+                style = MaterialTheme.typography.labelSmall,
+                color = iconTint
+            )
+        }
+
+        if (trackCount > 0) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (onPlayClick != null) {
+                    IconButton(
+                        onClick = onPlayClick,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(GammaPrimary, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play Smart Playlist",
+                            tint = GammaBackground,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                if (onShuffleClick != null) {
+                    IconButton(
+                        onClick = onShuffleClick,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(GammaPrimary.copy(alpha = 0.15f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shuffle,
+                            contentDescription = "Shuffle Smart Playlist",
+                            tint = GammaPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
         }
     }

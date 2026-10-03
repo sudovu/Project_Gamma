@@ -184,11 +184,11 @@ fun GammaDailyChartInfoDialog(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.GraphicEq, contentDescription = null, modifier = Modifier.size(14.dp), tint = GammaPrimary)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Harmonic Pitch", style = MaterialTheme.typography.labelSmall, color = GammaTextMuted)
+                                    Text("Audio Fidelity", style = MaterialTheme.typography.labelSmall, color = GammaTextMuted)
                                 }
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "${track.frequencyHz}Hz Tuned",
+                                    text = "HD Mastered",
                                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                     color = GammaPrimary
                                 )

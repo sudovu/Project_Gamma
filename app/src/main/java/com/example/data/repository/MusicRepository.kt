@@ -11,6 +11,8 @@ import com.example.data.local.RecentPlaybackDao
 import com.example.data.local.RecentPlaybackEntity
 import com.example.data.local.SearchHistoryDao
 import com.example.data.local.SearchHistoryEntity
+import com.example.data.local.TrackPlayStatDao
+import com.example.data.local.TrackPlayStatEntity
 import com.example.data.local.UploadedTrackDao
 import com.example.data.local.UploadedTrackEntity
 import com.example.data.provider.CuratedFrequencies
@@ -27,6 +29,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 import java.util.regex.Pattern
@@ -38,7 +41,8 @@ class MusicRepository(
     private val playlistDao: PlaylistDao,
     private val searchHistoryDao: SearchHistoryDao,
     private val uploadedTrackDao: UploadedTrackDao,
-    private val discoveryCacheDao: DiscoveryCacheDao
+    private val discoveryCacheDao: DiscoveryCacheDao,
+    private val trackPlayStatDao: TrackPlayStatDao? = null
 ) {
 
     fun getDiscoverFeed(): Flow<Result<DiscoverFeed>> = combine(
@@ -492,10 +496,60 @@ class MusicRepository(
                 youtubeVideoId = track.youtubeVideoId
             )
         )
+        try {
+            trackPlayStatDao?.recordPlay(
+                trackId = track.id,
+                title = track.title,
+                artist = track.artist,
+                albumTitle = track.albumTitle,
+                artworkUrl = track.artworkUrl,
+                youtubeVideoId = track.youtubeVideoId,
+                durationSeconds = track.durationSeconds,
+                genre = track.genre
+            )
+        } catch (_: Exception) {}
     }
 
     suspend fun recordPlayback(track: Track) {
         recordRecent(track)
+    }
+
+    fun getMostPlayedTracks(limit: Int = 100): Flow<List<Track>> {
+        return trackPlayStatDao?.getMostPlayed(limit)?.map { entities ->
+            entities.map { entity ->
+                Track(
+                    id = entity.trackId,
+                    title = entity.title,
+                    artist = entity.artist,
+                    albumTitle = entity.albumTitle,
+                    artworkUrl = entity.artworkUrl,
+                    youtubeVideoId = entity.youtubeVideoId,
+                    durationSeconds = entity.durationSeconds,
+                    genre = entity.genre,
+                    playCount = entity.playCount.toLong(),
+                    frequencyHz = entity.frequencyHz
+                )
+            }
+        } ?: flowOf(emptyList())
+    }
+
+    fun getLeastPlayedTracks(limit: Int = 100): Flow<List<Track>> {
+        return trackPlayStatDao?.getLeastPlayed(limit)?.map { entities ->
+            entities.map { entity ->
+                Track(
+                    id = entity.trackId,
+                    title = entity.title,
+                    artist = entity.artist,
+                    albumTitle = entity.albumTitle,
+                    artworkUrl = entity.artworkUrl,
+                    youtubeVideoId = entity.youtubeVideoId,
+                    durationSeconds = entity.durationSeconds,
+                    genre = entity.genre,
+                    playCount = entity.playCount.toLong(),
+                    frequencyHz = entity.frequencyHz
+                )
+            }
+        } ?: flowOf(emptyList())
     }
 
     fun getRecentHistory(): Flow<List<Track>> = getRecentTracks()

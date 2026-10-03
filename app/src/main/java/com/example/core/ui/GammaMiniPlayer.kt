@@ -177,22 +177,6 @@ fun GammaMiniPlayer(
                                 overflow = TextOverflow.Ellipsis,
                                 fontSize = 12.sp
                             )
-                            if (track.frequencyHz != 440) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(0x3300FFFF))
-                                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                                ) {
-                                    Text(
-                                        text = "${track.frequencyHz}Hz",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = GammaGlowCyan
-                                    )
-                                }
-                            }
                         }
                     }
 

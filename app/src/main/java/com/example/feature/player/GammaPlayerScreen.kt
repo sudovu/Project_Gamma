@@ -1196,7 +1196,7 @@ fun GammaPlayerScreen(
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "${track?.frequencyHz ?: 432}Hz Solfeggio",
+                                    text = "Harmonic Solfeggio",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = GammaPrimary
@@ -1352,7 +1352,7 @@ fun GammaPlayerScreen(
                             .padding(14.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            SpecRow("Harmonic Tuning", "${track?.frequencyHz ?: 432}Hz Natural Solfeggio")
+                            SpecRow("Harmonic Tuning", "Natural Harmonic Resonance")
                             SpecRow("DSP Equalizer Engine", "5-Band IIR Biquad Filters")
                             SpecRow("Audio Quality Profile", "256 kbps High-Definition AAC/Opus")
                             SpecRow("Playback Mechanism", "YouTube Authorized IFrame Embed")

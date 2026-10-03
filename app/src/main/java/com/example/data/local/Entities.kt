@@ -129,3 +129,23 @@ data class DiscoveredTrackEntity(
     val discoveredAt: Long = System.currentTimeMillis()
 )
 
+@Entity(
+    tableName = "track_play_stats",
+    indices = [
+        Index(value = ["playCount"]),
+        Index(value = ["lastPlayedAt"])
+    ]
+)
+data class TrackPlayStatEntity(
+    @PrimaryKey val trackId: String,
+    val title: String,
+    val artist: String,
+    val albumTitle: String = "",
+    val artworkUrl: String = "",
+    val youtubeVideoId: String = "",
+    val durationSeconds: Int = 0,
+    val genre: String = "Music",
+    val frequencyHz: Int = 432,
+    val playCount: Int = 1,
+    val lastPlayedAt: Long = System.currentTimeMillis()
+)
